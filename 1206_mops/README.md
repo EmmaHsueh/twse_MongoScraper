@@ -1,21 +1,21 @@
-# MOPS 財務報表爬蟲系統
+# MOPS 網站爬蟲
 
 自動化爬取公開資訊觀測站 (MOPS) 的上市櫃公司財務報表資料，並儲存至 MongoDB。
 
-## 專案簡介
+## 簡介
 
-本專案提供完整的財務報表爬蟲解決方案，支援以下三種財報：
+財務報表爬蟲程式：
 - 資產負債表
 - 綜合損益表
 - 現金流量表
 
 ### 主要特色
 
-- ✅ **高效率**: 一次查詢取得所有公司資料，效率提升 500+ 倍
-- ✅ **自動去重**: 智慧檢查避免重複爬取
-- ✅ **斷點續傳**: 可隨時中斷再繼續
-- ✅ **公司驗證**: 只爬取存在於「公司基本資料」的公司
-- ✅ **MongoDB 儲存**: 自動建立索引，查詢效率最佳化
+-  **高效率**: 一次請求取得所有公司資料
+-  **自動去重**: 智慧檢查避免重複爬取
+-  **斷點續傳**: 可隨時中斷再繼續
+-  **公司驗證**: 只爬取存在於「公司基本資料」的公司
+-  **MongoDB 儲存**: 自動建立索引，查詢效率最佳化
 
 ## 檔案結構
 
@@ -42,7 +42,7 @@
     └── debug_storage.py              # sessionStorage 偵錯
 ```
 
-## 快速開始
+## QUICK STAR
 
 ### 1. 環境準備
 
@@ -54,7 +54,7 @@ source venv/bin/activate
 pip list | grep -E "selenium|pandas|pymongo"
 ```
 
-### 2. 測試 MongoDB 連線
+### 2. MongoDB 連線
 
 ```bash
 python mongodb_helper.py
@@ -87,10 +87,10 @@ python income_statement_scraper.py
 python cashflow_scraper.py
 ```
 
-## 核心模組說明
+## 程式說明
 
 ### mops_scraper.py
-**核心爬蟲引擎**，處理 MOPS 網站的動態載入和反爬蟲機制。
+**核心爬蟲關鍵**，處理 MOPS 網站的動態載入和反爬蟲機制。
 
 主要功能：
 - 使用 Selenium 模擬瀏覽器操作
@@ -98,7 +98,7 @@ python cashflow_scraper.py
 - 從 sessionStorage 讀取動態生成的查詢結果 URL
 - 自動處理網頁跳轉
 
-關鍵方法：
+方法：
 ```python
 scraper = MOPSScraper(headless=True)
 result_url = scraper.scrape_data(
@@ -109,7 +109,7 @@ result_url = scraper.scrape_data(
 ```
 
 ### mongodb_helper.py
-**MongoDB 操作輔助模組**，提供資料庫操作介面。
+**MongoDB 模組**，提供資料庫操作介面。
 
 主要功能：
 - 連線管理
@@ -118,14 +118,14 @@ result_url = scraper.scrape_data(
 - 資料去重檢查
 - 批次插入
 
-關鍵方法：
+方法：
 ```python
 helper = MongoDBHelper()
 codes = helper.get_all_company_codes("sii")  # 取得上市公司代號
 exists = helper.company_exists("2330")       # 檢查公司是否存在
 ```
 
-## 財報爬蟲說明
+## 網站爬蟲說明
 
 ### batch_scraper_optimized.py
 **資產負債表爬蟲** (t163sb05)
@@ -150,7 +150,7 @@ exists = helper.company_exists("2330")       # 檢查公司是否存在
 
 ## 執行模式
 
-所有爬蟲都提供三種執行模式：
+所有爬蟲都有三種執行模式：
 
 ### 模式 1: 完整爬取
 ```
@@ -271,7 +271,6 @@ python debug_storage.py
 - 顯示 sessionStorage 所有鍵值
 - 解析查詢結果 JSON
 - 檢查新分頁
-
 
 
 ## 使用範例
