@@ -1,0 +1,23 @@
+# Python 虛擬環境
+venv/
+env/
+.venv/
+
+# Python 快取檔案
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 爬蟲輸出檔案
+*.csv
+*.xlsx
+*.json
+
+# 系統檔案
+.DS_Store
+.idea/
+.vscode/
+
+# 日誌檔案
+*.log
