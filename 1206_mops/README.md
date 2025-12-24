@@ -21,26 +21,47 @@
 
 ```
 1206_mops/
-├── README.md                          # 專案說明文件
-├── USAGE.md                          # 詳細使用指南
-├── requirements.txt                   # Python 相依套件
-├── run.sh                            # 快速啟動腳本
-├── venv/                             # Python 虛擬環境
-│
-├── 核心模組
-│   ├── mops_scraper.py               # 核心爬蟲引擎
-│   └── mongodb_helper.py             # MongoDB 操作輔助模組
-│
-├── 財報爬蟲
-│   ├── batch_scraper_optimized.py    # 資產負債表爬蟲
-│   ├── income_statement_scraper.py   # 綜合損益表爬蟲
-│   └── cashflow_scraper.py           # 現金流量表爬蟲
-│
-└── 偵錯工具
-    ├── diagnose_mongodb.py           # MongoDB 資料結構診斷
-    ├── debug_elements.py             # 網頁元素偵錯
-    └── debug_storage.py              # sessionStorage 偵錯
+  ├── venv/                          # Python 虛擬環境
+  ├── requirements.txt               # 套件相依性
+  ├── run.sh                         # 快速啟動腳本
+  ├── .gitignore                     # Git 忽略檔案
+  ├── 紀錄.md                        # 開發過程記錄
+  │
+  ├── 【核心爬蟲程式】
+  ├── mops_scraper.py                # MOPS 通用爬蟲引擎（使用 Selenium）
+  ├── mongodb_helper.py              # MongoDB 資料庫操作輔助模組
+  │
+  ├── 【財報爬蟲】
+  ├── batch_scraper_optimized.py     # 資產負債表爬蟲（批次優化版）
+  ├── income_statement_scraper.py    # 綜合損益表爬蟲
+  ├── cashflow_scraper.py            # 現金流量表爬蟲
+  │
+  ├── 【每月營收爬蟲】
+  ├── monthly_revenue_scraper.py     # 每月營收爬蟲（透過網址變更方式）
+  ├── test_revenue_scraper.py        # 每月營收測試腳本
+  ├── README_monthly_revenue.md      # 每月營收爬蟲使用說明
+  │
+  └── 【除錯工具】
+      ├── debug_elements.py          # 檢查網頁元素結構
+      ├── debug_storage.py           # 檢查 sessionStorage 內容
+      ├── debug_revenue_table.py     # 檢查營收表格結構
+      └── diagnose_mongodb.py        # 診斷 MongoDB 資料結構
+
 ```
+
+```
+  兩種爬蟲的定位
+
+  | 項目  | mops_scraper.py       | monthly_revenue_scraper.py |
+  |-----|-----------------------|----------------------------|
+  | 技術  | Selenium（動態操作）        | Requests（直接請求）             |
+  | 用途  | 財務報表（需動態查詢）           | 每月營收（固定網址格式）               |
+  | 依賴  | Chrome + ChromeDriver | 僅需 requests                |
+  | 速度  | 較慢                    | 較快                         |
+  | 適用  | 複雜查詢流程                | 簡單網址規則                     |
+
+```
+
 
 ## QUICK STAR
 
@@ -131,7 +152,7 @@ exists = helper.company_exists("2330")       # 檢查公司是否存在
 **資產負債表爬蟲** (t163sb05)
 
 - **Collection**: `上市櫃公司資產負債表`
-- **年份範圍**: 100-113 年
+- **年份範圍**: 78-114 年
 - **資料項目**: 流動資產、固定資產、負債、權益等
 
 ### income_statement_scraper.py
@@ -145,7 +166,7 @@ exists = helper.company_exists("2330")       # 檢查公司是否存在
 **現金流量表爬蟲** (t163sb20)
 
 - **Collection**: `上市櫃公司現金流量表`
-- **年份範圍**: 102-113 年
+- **年份範圍**: 102-114 年
 - **資料項目**: 營業活動、投資活動、籌資活動現金流量
 
 ## 執行模式

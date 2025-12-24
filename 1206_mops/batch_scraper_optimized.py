@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-優化版批次爬蟲 - 一次查詢取得所有公司資料
-大幅提升效率,減少重複請求
-"""
 
 import time
 from datetime import datetime
@@ -58,7 +54,7 @@ class OptimizedBatchScraper:
                 code_column = None
                 for col in df.columns:
                     col_str = str(col).strip()
-                    if any(keyword in col_str for keyword in ["公司代號", "代號", "公司代碼", "股票代號"]):
+                    if any(keyword in col_str for keyword in ["公司代號", "公司代碼", "股票代號"]):
                         code_column = col
                         print(f"  ✓ 找到公司代號欄位: {code_column}")
                         break
@@ -210,7 +206,7 @@ class OptimizedBatchScraper:
 
     def scrape_all_history_optimized(self, market_types=["sii", "otc"], start_year=100, end_year=113):
         """
-        優化版:按年度+季別批次爬取
+        按年度+季別批次爬取
 
         Args:
             market_types: 市場類型列表
@@ -291,8 +287,8 @@ def main():
             # 完整爬取
             scraper.scrape_all_history_optimized(
                 market_types=["sii", "otc"],
-                start_year=100,
-                end_year=113
+                start_year=86,
+                end_year=99
             )
         elif choice == "2":
             # 測試模式

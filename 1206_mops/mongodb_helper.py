@@ -65,7 +65,6 @@ class MongoDBHelper:
                 if market_name:
                     query["市場別"] = market_name
 
-            # 注意:欄位名稱是 "公司 代號" (有空格)
             companies = self.company_basic.find(query, {"公司 代號": 1, "_id": 0})
             codes = [c["公司 代號"] for c in companies if "公司 代號" in c]
             print(f"✓ 從 MongoDB 取得 {len(codes)} 家公司代號")
