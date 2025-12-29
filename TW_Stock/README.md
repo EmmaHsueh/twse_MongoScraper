@@ -1,69 +1,52 @@
-# MOPS 網站爬蟲
+# TW Stock MOPS 爬蟲專案
 
-自動化爬取公開資訊觀測站 (MOPS) 的上市櫃公司財務報表資料，並儲存至 MongoDB。
-
-## 簡介
-
-財務報表爬蟲程式：
+爬取台灣上市櫃公司的財務資料：
 - 資產負債表
 - 綜合損益表
 - 現金流量表
+- 每月營收
+- 內部人持股異動事後申報表
 
-### 主要特色
-
--  **高效率**: 一次請求取得所有公司資料
--  **自動去重**: 智慧檢查避免重複爬取
--  **斷點續傳**: 可隨時中斷再繼續
--  **公司驗證**: 只爬取存在於「公司基本資料」的公司
--  **MongoDB 儲存**: 自動建立索引，查詢效率最佳化
 
 ## 檔案結構
 
 ```
-1206_mops/
-  ├── venv/                          # Python 虛擬環境
-  ├── requirements.txt               # 套件相依性
-  ├── run.sh                         # 快速啟動腳本
-  ├── .gitignore                     # Git 忽略檔案
-  ├── 紀錄.md                        # 開發過程記錄
+TW_Stock/
+  ├── venv/                                # Python 虛擬環境
+  ├── requirements.txt                     # 套件相依性
+  ├── run.sh                               # 快速啟動腳本
+  ├── .gitignore                           # Git 忽略檔案
   │
-  ├── 【核心爬蟲程式】
-  ├── mops_scraper.py                # MOPS 通用爬蟲引擎（使用 Selenium）
-  ├── mongodb_helper.py              # MongoDB 資料庫操作輔助模組
+  ├── 【核心模組】
+  ├── mops_scraper.py                      # MOPS 通用爬蟲引擎 (Selenium)
+  ├── mongodb_helper.py                    # MongoDB 資料庫操作輔助模組
   │
   ├── 【財報爬蟲】
-  ├── batch_scraper_optimized.py     # 資產負債表爬蟲（批次優化版）
-  ├── income_statement_scraper.py    # 綜合損益表爬蟲
-  ├── cashflow_scraper.py            # 現金流量表爬蟲
+  ├── batch_scraper_optimized.py           # 資產負債表爬蟲 (批次優化版)
+  ├── income_statement_scraper.py          # 綜合損益表爬蟲
+  ├── cashflow_scraper.py                  # 現金流量表爬蟲
   │
-  ├── 【每月營收爬蟲】
-  ├── monthly_revenue_scraper.py     # 每月營收爬蟲（透過網址變更方式）
-  ├── test_revenue_scraper.py        # 每月營收測試腳本
-  ├── README_monthly_revenue.md      # 每月營收爬蟲使用說明
+  ├── 【營收爬蟲】
+  ├── monthly_revenue_scraper.py           # 每月營收爬蟲 (Requests)
   │
-  └── 【除錯工具】
-      ├── debug_elements.py          # 檢查網頁元素結構
-      ├── debug_storage.py           # 檢查 sessionStorage 內容
-      ├── debug_revenue_table.py     # 檢查營收表格結構
-      └── diagnose_mongodb.py        # 診斷 MongoDB 資料結構
-
+  ├── 【內部人持股爬蟲】
+  ├── query6_1_scraper.py                  # 內部人持股異動事後申報表爬蟲
+  └── query6_1_scraper_parallel.py         # 內部人持股爬蟲 (多進程並行版)
 ```
 
-```
-  兩種爬蟲的定位
+## 技術架構
 
-  | 項目  | mops_scraper.py       | monthly_revenue_scraper.py |
-  |-----|-----------------------|----------------------------|
-  | 技術  | Selenium（動態操作）        | Requests（直接請求）             |
-  | 用途  | 財務報表（需動態查詢）           | 每月營收（固定網址格式）               |
-  | 依賴  | Chrome + ChromeDriver | 僅需 requests                |
-  | 速度  | 較慢                    | 較快                         |
-  | 適用  | 複雜查詢流程                | 簡單網址規則                     |
+### 兩種爬蟲技術
 
-```
+| 項目 | Selenium 爬蟲 | Requests 爬蟲 |
+|-----|--------------|--------------|
+| 使用檔案 | mops_scraper.py<br>batch_scraper_optimized.py<br>income_statement_scraper.py<br>cashflow_scraper.py<br>query6_1_scraper.py | monthly_revenue_scraper.py |
+| 技術 | Selenium + ChromeDriver | Requests + Pandas |
+| 用途 | 財務報表、內部人持股<br>(需動態查詢) | 每月營收<br>(固定網址格式) |
+| 速度 | 較慢 | 較快 |
+| 適用場景 | 複雜查詢流程 | 簡單網址規則 |
 
-
-## QUICK STAR
+## 快速開始
 
 ### 1. 環境準備
 
@@ -72,23 +55,13 @@
 source venv/bin/activate
 
 # 確認套件已安裝
-pip list | grep -E "selenium|pandas|pymongo"
+pip list | grep -E "selenium|pandas|pymongo|requests"
 ```
 
-### 2. MongoDB 連線
+### 2. MongoDB 連線測試
 
 ```bash
 python mongodb_helper.py
-```
-
-預期輸出：
-```
-=== MongoDB 連線測試 ===
-資料庫: TW_Stock
-公司總數: 2284
-上市公司: 1066
-上櫃公司: 860
-✓ 連線測試成功
 ```
 
 ### 3. 執行爬蟲
@@ -108,250 +81,181 @@ python income_statement_scraper.py
 python cashflow_scraper.py
 ```
 
-## 程式說明
-
-### mops_scraper.py
-**核心爬蟲關鍵**，處理 MOPS 網站的動態載入和反爬蟲機制。
-
-主要功能：
-- 使用 Selenium 模擬瀏覽器操作
-- 處理市場別、年度、季別選擇
-- 從 sessionStorage 讀取動態生成的查詢結果 URL
-- 自動處理網頁跳轉
-
-方法：
-```python
-scraper = MOPSScraper(headless=True)
-result_url = scraper.scrape_data(
-    market_type="sii",  # 上市
-    year=113,           # 民國年度
-    season=3            # 第三季
-)
-```
-
-### mongodb_helper.py
-**MongoDB 模組**，提供資料庫操作介面。
-
-主要功能：
-- 連線管理
-- 索引建立
-- 公司代號驗證
-- 資料去重檢查
-- 批次插入
-
-方法：
-```python
-helper = MongoDBHelper()
-codes = helper.get_all_company_codes("sii")  # 取得上市公司代號
-exists = helper.company_exists("2330")       # 檢查公司是否存在
-```
-
-## 網站爬蟲說明
-
-### batch_scraper_optimized.py
-**資產負債表爬蟲** (t163sb05)
-
-- **Collection**: `上市櫃公司資產負債表`
-- **年份範圍**: 78-114 年
-- **資料項目**: 流動資產、固定資產、負債、權益等
-
-### income_statement_scraper.py
-**綜合損益表爬蟲** (t163sb04)
-
-- **Collection**: `上市櫃公司綜合損益表`
-- **年份範圍**: 78-114 年
-- **資料項目**: 營收、成本、毛利、淨利等
-
-### cashflow_scraper.py
-**現金流量表爬蟲** (t163sb20)
-
-- **Collection**: `上市櫃公司現金流量表`
-- **年份範圍**: 102-114 年
-- **資料項目**: 營業活動、投資活動、籌資活動現金流量
-
-## 執行模式
-
-所有爬蟲都有三種執行模式：
-
-### 模式 1: 完整爬取
-```
-爬取所有歷史資料
-自動跳過已存在的資料
-適合第一次執行
-```
-
-### 模式 2: 測試模式
-```
-只爬取 113Q3 上市公司資料
-用於快速測試功能
-```
-
-### 模式 3: 自訂範圍
-```
-自訂市場別、起始年度、結束年度
-彈性控制爬取範圍
-```
-
-## MongoDB 資料結構
-
-### 資料庫: TW_Stock
-
-#### Collection: 公司基本資料
-```javascript
-{
-  "公司 代號": "2330",      // 注意有空格
-  "公司名稱": "台積電",
-  "市場別": "listed",       // listed(上市), otc(上櫃), emerging(興櫃)
-  ...
-}
-```
-
-#### Collection: 上市櫃公司資產負債表
-```javascript
-{
-  "公司代號": "2330",
-  "年度": 113,
-  "季別": 3,
-  "流動資產": 1234567890,
-  "固定資產": 9876543210,
-  ...
-  "爬取時間": ISODate("2024-12-06T14:30:00Z")
-}
-```
-
-#### Collection: 上市櫃公司綜合損益表
-```javascript
-{
-  "公司代號": "2330",
-  "年度": 113,
-  "季別": 3,
-  "營業收入": 1234567890,
-  "營業成本": 9876543210,
-  ...
-}
-```
-
-#### Collection: 上市櫃公司現金流量表
-```javascript
-{
-  "公司代號": "2330",
-  "年度": 113,
-  "季別": 3,
-  "營業活動現金流量": 1234567890,
-  "投資活動現金流量": -9876543210,
-  ...
-}
-```
-
-### 索引設計
-```javascript
-// 公司基本資料
-{ "公司 代號": 1 }  // unique
-
-// 各財報 collection
-{ "公司代號": 1, "年度": 1, "季別": 1 }  // unique compound index
-```
-
-## 偵錯工具
-
-### diagnose_mongodb.py
-診斷 MongoDB 資料結構，檢查欄位名稱和值。
-
+#### 每月營收
 ```bash
-python diagnose_mongodb.py
+python monthly_revenue_scraper.py
 ```
 
-用途：
-- 檢查 collections 列表
-- 顯示資料範例
-- 自動偵測欄位名稱
-- 統計市場別分佈
-
-### debug_elements.py
-檢查網頁元素結構，用於找出正確的選擇器。
-
+#### 內部人持股異動
 ```bash
-python debug_elements.py
+# 單進程版本
+python query6_1_scraper.py
+
+# 多進程並行版本 (4個進程)
+python query6_1_scraper_parallel.py
 ```
 
-用途：
-- 列出所有下拉選單
-- 列出所有按鈕
-- 顯示元素 ID、Name、Class
-- 儲存完整 HTML
 
-### debug_storage.py
-檢查 sessionStorage 內容，用於偵錯查詢結果 URL。
+## 共同函式庫
 
-```bash
-python debug_storage.py
-```
+本專案的各爬蟲程式使用以下共同函式：
 
-用途：
-- 執行完整查詢流程
-- 顯示 sessionStorage 所有鍵值
-- 解析查詢結果 JSON
-- 檢查新分頁
+### MongoDB 資料庫操作
 
-
-## 使用範例
-
-### 範例 1: 爬取 2023 年上市公司資產負債表
+所有爬蟲都使用這些函式進行資料庫操作：
 
 ```python
-from batch_scraper_optimized import OptimizedBatchScraper
+# 公司驗證
+company_exists(company_code)              # 檢查公司是否存在於基本資料中
 
-scraper = OptimizedBatchScraper(headless=True)
+# 資料去重
+xxx_exists(company_code, year, season)    # 檢查資料是否已存在
+balance_sheet_exists()                    # 資產負債表
+income_exists()                           # 綜合損益表
+cashflow_exists()                         # 現金流量表
+_revenue_exists()                         # 每月營收
 
-try:
-    scraper.scrape_all_history_optimized(
-        market_types=["sii"],
-        start_year=112,
-        end_year=112
-    )
-finally:
-    scraper.close()
+# 資料插入
+insert_xxx(data)                          # 插入單筆資料
+insert_xxx_batch(data_list)               # 批次插入資料
+
+# 索引管理
+_create_indexes()                         # 建立 MongoDB 索引
+
+# 連線管理
+close()                                   # 關閉 MongoDB 連線
 ```
 
-### 範例 2: 查詢 MongoDB 中的資料
+### Selenium 爬蟲操作
+
+使用 Selenium 的爬蟲共享這些核心函式：
 
 ```python
-from mongodb_helper import MongoDBHelper
+# 網頁操作
+select_market(market_type)                # 選擇市場別 (sii/otc/rotc)
+input_year(year)                          # 輸入年度
+select_season(season)                     # 選擇季別
+input_company_code(company_code)          # 輸入公司代號
+select_custom_date()                      # 選擇自訂日期
 
-helper = MongoDBHelper()
+# 查詢執行
+click_query_button()                      # 點擊查詢按鈕
+wait_for_loading_to_disappear()          # 等待載入完成
 
-# 取得台積電 2023Q3 資產負債表
-data = helper.balance_sheet.find_one({
-    "公司代號": "2330",
-    "年度": 112,
-    "季別": 3
-})
+# 結果取得
+get_result_url_from_session_storage()    # 從 sessionStorage 取得結果 URL
+get_query_results_from_session_storage() # 從 sessionStorage 取得查詢結果
 
-print(data)
+# 瀏覽器管理
+close()                                   # 關閉瀏覽器
 ```
 
-### 範例 3: 批次爬取所有財報
+### 資料解析
 
-```bash
-# 1. 資產負債表
-python batch_scraper_optimized.py
-# 選擇: 1
+共同的資料解析邏輯：
 
-# 2. 綜合損益表
-python income_statement_scraper.py
-# 選擇: 1
+```python
+# HTML 表格解析
+parse_all_companies_from_table(html_content, year, season)
+    # 使用 pandas.read_html() 解析表格
+    # 尋找公司代號欄位
+    # 清理並驗證公司代號
+    # 轉換數值格式
+    # 返回結構化資料列表
 
-# 3. 現金流量表
-python cashflow_scraper.py
-# 選擇: 1
+# 欄位處理
+parse_titles_to_columns(titles)           # 將巢狀標題轉換為欄位名稱
+
+# 營收表格解析
+_parse_revenue_table(html_content, year, month, market_type)
+```
+
+### 批次爬取流程
+
+財報爬蟲 (資產負債表、損益表、現金流量表) 的共同爬取流程：
+
+```python
+# 單次批次爬取
+scrape_and_save_batch(market_type, year, season)
+    # 1. 執行查詢取得結果 URL
+    # 2. 取得頁面內容
+    # 3. 解析所有公司資料
+    # 4. 過濾已存在的資料
+    # 5. 批次儲存到 MongoDB
+    # 6. 返回成功儲存的筆數
+
+# 歷史資料完整爬取
+scrape_all_history(market_types, start_year, end_year)
+    # 遍歷市場別、年度、季別
+    # 呼叫 scrape_and_save_batch()
+    # 統計總成功筆數
+    # 加入延遲避免被封鎖
+```
+
+### 輔助工具函式
+
+```python
+# 時間範圍生成
+generate_year_month_list(start_year, start_month, end_year, end_month)
+    # 生成 [(year, month), ...] 列表
+    # 用於批次爬取所有年月
+
+# URL 建構
+_build_url(market_type, year, month, data_type)
+    # 根據年份和參數動態建立爬蟲網址
+    # 處理不同年份的 URL 格式差異
+
+# 資料驗證
+_is_valid_company(company_code)           # 檢查公司代號是否有效
+_get_valid_company_codes()                # 取得所有有效公司代號集合
+
+# 統計資訊
+get_statistics()                          # 取得資料庫統計資訊
+```
+
+### 程式碼重用模式
+
+所有爬蟲遵循相同的設計模式：
+
+```python
+class XXXScraper:
+    def __init__(self, mongodb_uri, headless):
+        # 初始化 MongoDB 連線
+        # 初始化爬蟲 (Selenium 或 Requests)
+        # 建立索引
+
+    def company_exists(self, company_code):
+        # 檢查公司是否存在
+
+    def xxx_exists(self, company_code, year, season/month):
+        # 檢查資料是否已存在
+
+    def insert_xxx(self, data):
+        # 插入單筆資料
+
+    def insert_xxx_batch(self, data_list):
+        # 批次插入資料
+
+    def parse_xxx(self, html_content, ...):
+        # 解析資料
+
+    def scrape_and_save_batch(self, ...):
+        # 爬取並儲存批次資料
+
+    def scrape_all_history(self, ...):
+        # 爬取所有歷史資料
+
+    def close(self):
+        # 關閉連線
 ```
 
 ## 注意事項
 
 ### 1. 反爬蟲機制
-- 每次請求間隔 5 秒
+- 每次請求間隔 2-5 秒
 - 使用真實 User-Agent
 - 隱藏 webdriver 特徵
+- 隨機延遲時間
 
 ### 2. 資料正確性
 - 爬取後建議抽查驗證
@@ -363,107 +267,11 @@ python cashflow_scraper.py
 - ChromeDriver (自動下載)
 - MongoDB 服務執行中
 - 穩定的網路連線
+- Python 3.7+
 
 ### 4. 效能優化
 - 使用 `headless=True` 背景執行
 - 定期清理 MongoDB 日誌
 - 監控磁碟空間
-
-## 常見問題
-
-### Q1: 瀏覽器崩潰怎麼辦？
-A: 程式會自動跳過失敗的請求，可以再次執行繼續爬取未完成的資料。
-
-### Q2: 如何查看爬取進度？
-```javascript
-// MongoDB Shell
-db.上市櫃公司資產負債表.aggregate([
-  { $group: { _id: { year: "$年度", season: "$季別" }, count: { $sum: 1 } } },
-  { $sort: { "_id.year": 1, "_id.season": 1 } }
-])
-```
-
-### Q3: 如何只爬取特定公司？
-需要修改程式碼，在 `parse_all_companies_from_table` 方法中加入公司代號過濾。
-
-### Q4: 資料儲存在哪裡？
-```
-MongoDB 資料庫: TW_Stock
-Collections:
-  - 上市櫃公司資產負債表
-  - 上市櫃公司綜合損益表
-  - 上市櫃公司現金流量表
-```
-
-### Q5: 如何備份資料？
-```bash
-# 備份整個資料庫
-mongodump --db TW_Stock --out ./backup
-
-# 還原資料
-mongorestore --db TW_Stock ./backup/TW_Stock
-```
-
-## 故障排除
-
-### ChromeDriver 版本問題
-```bash
-pip install webdriver-manager
-```
-
-然後修改 `mops_scraper.py`:
-```python
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
-
-service = Service(ChromeDriverManager().install())
-self.driver = webdriver.Chrome(service=service, options=chrome_options)
-```
-
-### MongoDB 連線失敗
-檢查 MongoDB 服務狀態:
-```bash
-# macOS
-brew services list | grep mongodb
-
-# 啟動 MongoDB
-brew services start mongodb-community
-```
-
-### 找不到元素
-執行偵錯工具檢查網頁結構:
-```bash
-python debug_elements.py
-```
-
-## 技術細節
-
-### 反爬蟲處理
-```python
-# 隱藏 webdriver 特徵
-chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-
-# 修改 navigator.webdriver
-driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {
-    'source': 'Object.defineProperty(navigator, "webdriver", {get: () => undefined})'
-})
-```
-
-### SessionStorage 讀取
-```python
-query_results = driver.execute_script(
-    "return sessionStorage.getItem('queryResultsSet');"
-)
-result_data = json.loads(query_results)
-url = result_data['result']['result']['url']  # 注意巢狀結構
-```
-
-### 批次處理邏輯
-1. 選擇市場別、年度、季別
-2. 查詢取得所有公司資料
-3. 解析 HTML 表格
-4. 驗證公司代號
-5. 檢查資料是否已存在
-6. 批次儲存到 MongoDB
+- 多進程爬取可提升 3-4 倍速度
 
