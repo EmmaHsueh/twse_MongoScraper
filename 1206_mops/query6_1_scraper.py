@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class Query61Scraper(MOPSScraper):
     """
-    繼承 MOPSScraper，專門處理 query6_1 頁面
+    處理 query6_1 頁面
     """
 
     def __init__(self, headless=False):
@@ -41,14 +41,9 @@ class Query61Scraper(MOPSScraper):
         self.url = "https://mops.twse.com.tw/mops/#/web/query6_1"
 
     def input_company_code(self, company_code):
-        """
-        輸入公司代號
 
-        Args:
-            company_code: 公司代號 (例如: 2330)
-        """
         try:
-            # 使用 JavaScript 先清空並輸入新的公司代號（合併操作）
+            # 使用 JavaScript 先清空並輸入新的公司代號
             self.driver.execute_script(f"""
                 var input = document.getElementById('companyId');
                 if (input) {{
@@ -67,7 +62,7 @@ class Query61Scraper(MOPSScraper):
         選擇「自訂」時間選項
         """
         try:
-            # 使用 JavaScript 直接點擊元素（不需要額外等待）
+            # 使用 JavaScript 直接點擊元素
             self.driver.execute_script("""
                 var radio = document.getElementById('dataType_2');
                 if (radio) {
@@ -136,7 +131,7 @@ class Query61Scraper(MOPSScraper):
 
     def click_query_button_with_retry(self, max_retries=3):
         """
-        點擊查詢按鈕（帶重試機制，優化版）
+        點擊查詢按鈕
 
         Args:
             max_retries: 最大重試次數
@@ -158,7 +153,7 @@ class Query61Scraper(MOPSScraper):
 
                 if clicked:
                     print("✓ 已點擊查詢按鈕")
-                    time.sleep(0.3)  # 大幅減少等待時間，改為依賴後續 sessionStorage 檢查
+                    time.sleep(0.2)  # 進一步減少等待時間
                     return True
                 else:
                     print(f"✗ 找不到查詢按鈕 (嘗試 {attempt + 1}/{max_retries})")
@@ -182,7 +177,7 @@ class Query61Scraper(MOPSScraper):
             month: 月份 (1-12)
         """
         try:
-            # 使用 JavaScript 直接設置值
+            # 使用 JavaScript 
             month_text = f"{month}月"
             self.driver.execute_script(f"""
                 var monthSelect = document.getElementById('month');
@@ -292,19 +287,40 @@ class Query61Scraper(MOPSScraper):
             self.input_custom_year(year)
             self.input_custom_month(month)
 
+            # 4.5 清空 sessionStorage（確保不會抓到舊資料）
+            self.driver.execute_script("sessionStorage.removeItem('queryResultsSet');")
+            print("  [清空] 已清空 sessionStorage")
+
             # 5. 點擊查詢按鈕（使用重試機制）
             self.click_query_button_with_retry()
 
-            # 6. 等待 sessionStorage 更新（使用智能等待，優化版）
-            max_wait = 5  # 最多等待 5 秒（給予足夠時間但檢查更頻繁）
+            # 6. 等待 sessionStorage 更新（智能快速失敗機制）
+            max_wait = 2  
             start_time = time.time()
             results = None
 
             while time.time() - start_time < max_wait:
+                # 檢查是否有「查無資料」或錯誤訊息
+                no_data = self.driver.execute_script("""
+                    var alerts = document.querySelectorAll('.alert, .error, .warning');
+                    for (var i = 0; i < alerts.length; i++) {
+                        var text = alerts[i].textContent;
+                        if (text.includes('查無資料') || text.includes('查詢無結果') || text.includes('無符合')) {
+                            return true;
+                        }
+                    }
+                    return false;
+                """)
+
+                if no_data:
+                    # 快速失敗：檢測到無資料訊息，立即返回
+                    print(f"  [快速檢測] 查無資料")
+                    break
+
                 results = self.get_query_results_from_session_storage()
                 if results:
                     break
-                time.sleep(0.05)  # 縮短檢查間隔，從 0.2 秒降到 0.05 秒
+                time.sleep(0.05)  # 快速檢查間隔
 
             if results:
                 elapsed_time = time.time() - start_time
@@ -529,7 +545,7 @@ def main():
 
     # 設定爬取時間範圍：2012年1月 到 2025年11月
     # 2012年 = 民國101年，2025年 = 民國114年
-    start_year, start_month = 101, 1  # 2012年1月
+    start_year, start_month = 101, 8  # 2012年2月
     end_year, end_month = 114, 11     # 2025年11月
 
     year_month_list = generate_year_month_list(start_year, start_month, end_year, end_month)
